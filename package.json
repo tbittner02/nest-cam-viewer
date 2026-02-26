@@ -1,0 +1,12 @@
+{
+  "name": "nest-cam-viewer",
+  "version": "1.0.0",
+  "description": "Dual Nest camera viewer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
