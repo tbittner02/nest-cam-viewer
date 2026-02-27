@@ -84,9 +84,10 @@
 
   /* ── Dashboard ribbon ── */
   #dashboard {
-    display: grid;
-    grid-template-columns: auto auto 1fr;
-    gap: 1px;
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    gap: 0;
     background: var(--border);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
@@ -94,63 +95,74 @@
 
   .dash-panel {
     background: var(--surface);
-    padding: 1rem 1.5rem;
+    padding: 0.75rem 1.2rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    border-right: 1px solid var(--border);
   }
+  .dash-panel:last-child { border-right: none; }
 
   /* Clock panel */
   .clock-panel {
     align-items: center;
-    min-width: 220px;
-    border-right: 1px solid var(--border);
+    min-width: 0;
   }
   #big-clock {
     font-family: 'Orbitron', monospace;
-    font-size: 2.8rem;
+    font-size: 2.2rem;
     font-weight: 900;
     color: var(--accent);
     letter-spacing: 0.05em;
     line-height: 1;
     text-shadow: 0 0 20px rgba(52, 211, 153, 0.3);
+    white-space: nowrap;
+  }
+  #big-ampm {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    opacity: 0.7;
+    letter-spacing: 0.1em;
+    margin-top: 0.2rem;
+    text-align: center;
   }
   #big-date {
-    font-size: 0.7rem;
+    font-size: 0.62rem;
     color: var(--muted);
-    margin-top: 0.4rem;
-    letter-spacing: 0.08em;
+    margin-top: 0.25rem;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
+    white-space: nowrap;
   }
 
   /* Calendar panel */
   .calendar-panel {
-    min-width: 180px;
-    border-right: 1px solid var(--border);
     align-items: center;
+    min-width: 0;
   }
   .cal-month {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.35rem;
   }
   .cal-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 2px;
-    font-size: 0.62rem;
+    gap: 1px;
+    font-size: 0.58rem;
   }
   .cal-day-header {
     text-align: center;
     color: var(--muted);
     padding: 2px 0;
-    font-size: 0.58rem;
+    font-size: 0.54rem;
   }
   .cal-day {
     text-align: center;
-    padding: 3px 2px;
+    padding: 2px 3px;
     border-radius: 2px;
     cursor: default;
     color: var(--text);
@@ -161,77 +173,87 @@
     color: #000;
     font-weight: 700;
     opacity: 1;
-    border-radius: 2px;
   }
   .cal-day.empty { opacity: 0; }
 
   /* Weather panel */
   .weather-panel {
-    display: grid;
-    grid-template-columns: auto 1fr 1fr 1fr 1fr;
-    gap: 0;
+    display: flex;
+    flex-direction: row;
     align-items: stretch;
     padding: 0;
+    gap: 0;
   }
   .wx-current {
-    padding: 1rem 1.5rem;
+    padding: 0.75rem 1.2rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
     border-right: 1px solid var(--border);
-    min-width: 140px;
+    min-width: 120px;
   }
   .wx-label {
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.25rem;
   }
   .wx-temp {
     font-family: 'Orbitron', monospace;
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     font-weight: 700;
     color: var(--accent2);
     line-height: 1;
   }
   .wx-condition {
-    font-size: 0.68rem;
+    font-size: 0.62rem;
     color: var(--muted);
-    margin-top: 0.3rem;
+    margin-top: 0.25rem;
   }
-  .wx-forecast {
-    padding: 0.75rem 1rem;
+
+  /* Single combined forecast box */
+  .wx-forecasts {
+    padding: 0.6rem 1rem;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    border-right: 1px solid var(--border);
-    gap: 0.2rem;
+    justify-content: space-between;
+    gap: 0;
+    min-width: 220px;
   }
-  .wx-forecast:last-child { border-right: none; }
+  .wx-forecast-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.2rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .wx-forecast-row:last-child { border-bottom: none; }
   .wx-period {
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     color: var(--accent2);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    margin-bottom: 0.2rem;
+    min-width: 32px;
+    flex-shrink: 0;
   }
   .wx-desc {
-    font-size: 0.68rem;
+    font-size: 0.65rem;
     color: var(--text);
-    line-height: 1.5;
+    line-height: 1.4;
     opacity: 0.85;
   }
   .wx-detail {
-    font-size: 0.62rem;
+    font-size: 0.6rem;
     color: var(--muted);
-    margin-top: 0.2rem;
+    margin-left: auto;
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 
   @media (max-width: 900px) {
-    #dashboard { grid-template-columns: 1fr; }
-    .weather-panel { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; }
-    .clock-panel, .calendar-panel { border-right: none; border-bottom: 1px solid var(--border); }
+    #dashboard { flex-wrap: wrap; justify-content: flex-start; }
+    .dash-panel { border-bottom: 1px solid var(--border); }
   }
 
   /* ── Auth / device picker ── */
@@ -290,12 +312,13 @@
     padding: 0.1rem 0.4rem; border-radius: 999px; letter-spacing: 0.08em; font-weight: 500;
   }
   .cam-meta { color: var(--muted); font-size: 0.65rem; display: flex; align-items: center; gap: 0.75rem; }
-  .cam-clock {
-    font-family: 'Orbitron', monospace;
-    font-size: 0.7rem;
+  .cam-fresh {
+    font-size: 0.62rem;
     color: var(--accent);
-    letter-spacing: 0.05em;
+    transition: color 0.5s;
   }
+  .cam-fresh.stale { color: var(--yellow); }
+  .cam-fresh.frozen { color: var(--red); }
 
   .cam-body {
     flex: 1; display: flex; align-items: center; justify-content: center;
@@ -347,6 +370,7 @@
   <!-- Clock -->
   <div class="dash-panel clock-panel">
     <div id="big-clock">00:00:00</div>
+    <div id="big-ampm">AM</div>
     <div id="big-date">Loading...</div>
   </div>
 
@@ -363,17 +387,19 @@
       <div class="wx-temp" id="wx-temp">3°C</div>
       <div class="wx-condition" id="wx-condition">Mostly Cloudy</div>
     </div>
-    <div class="wx-forecast" id="wx-6h">
-      <div class="wx-period">Next 6h</div>
-      <div class="wx-desc">Loading...</div>
-    </div>
-    <div class="wx-forecast" id="wx-12h">
-      <div class="wx-period">Next 12h</div>
-      <div class="wx-desc">Loading...</div>
-    </div>
-    <div class="wx-forecast" id="wx-24h">
-      <div class="wx-period">Next 24h</div>
-      <div class="wx-desc">Loading...</div>
+    <div class="wx-forecasts">
+      <div class="wx-forecast-row" id="wx-6h">
+        <div class="wx-period">6h</div>
+        <div class="wx-desc">Loading...</div>
+      </div>
+      <div class="wx-forecast-row" id="wx-12h">
+        <div class="wx-period">12h</div>
+        <div class="wx-desc">Loading...</div>
+      </div>
+      <div class="wx-forecast-row" id="wx-24h">
+        <div class="wx-period">24h</div>
+        <div class="wx-desc">Loading...</div>
+      </div>
     </div>
   </div>
 
@@ -401,7 +427,7 @@
       <div class="cam-header">
         <div class="cam-title"><span class="live-pill">LIVE</span><span id="cam-0-title">Camera 1</span></div>
         <div class="cam-meta">
-          <span class="cam-clock" id="cam-0-clock"></span>
+          <span class="cam-fresh" id="cam-0-fresh"></span>
           <span id="cam-0-meta">connecting...</span>
         </div>
       </div>
@@ -414,7 +440,7 @@
       <div class="cam-header">
         <div class="cam-title"><span class="live-pill">LIVE</span><span id="cam-1-title">Camera 2</span></div>
         <div class="cam-meta">
-          <span class="cam-clock" id="cam-1-clock"></span>
+          <span class="cam-fresh" id="cam-1-fresh"></span>
           <span id="cam-1-meta">connecting...</span>
         </div>
       </div>
@@ -480,18 +506,17 @@ function setForecast(elId, hourly, fromIdx, toIdx) {
 
   const minT = Math.min(...temps), maxT = Math.max(...temps);
   const maxPrecip = Math.max(...precip);
-  // Most common weather code
   const modeCode = codes.sort((a,b) =>
     codes.filter(v=>v===b).length - codes.filter(v=>v===a).length)[0];
 
   const desc = wmoDescription(modeCode);
-  const precipText = maxPrecip >= 30 ? ` ${maxPrecip}% precip chance.` : '';
+  const precipText = maxPrecip >= 30 ? ` · ${maxPrecip}% precip` : '';
 
   const el = document.getElementById(elId);
   const period = el.querySelector('.wx-period')?.textContent || '';
   el.innerHTML = `
     <div class="wx-period">${period}</div>
-    <div class="wx-desc">${desc}.${precipText}</div>
+    <div class="wx-desc">${desc}${precipText}</div>
     <div class="wx-detail">${minT}°–${maxT}°C</div>
   `;
 }
@@ -513,22 +538,17 @@ function wmoDescription(code) {
 // ── Clock ──────────────────────────────────────────────────────────────────
 function updateClock() {
   const now = new Date();
-  const h = String(now.getHours()).padStart(2,'0');
+  let h = now.getHours();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
   const m = String(now.getMinutes()).padStart(2,'0');
-  const s = String(now.getSeconds()).padStart(2,'0');
-  document.getElementById('big-clock').textContent = `${h}:${m}:${s}`;
+  document.getElementById('big-clock').textContent = `${h}:${m}`;
+  document.getElementById('big-ampm').textContent = ampm;
 
   const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   document.getElementById('big-date').textContent =
     `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
-
-  // Update per-camera clocks (shows current time as live indicator)
-  const timeStr = `${h}:${m}:${s}`;
-  const c0 = document.getElementById('cam-0-clock');
-  const c1 = document.getElementById('cam-1-clock');
-  if (c0) c0.textContent = timeStr;
-  if (c1) c1.textContent = timeStr;
 }
 
 // ── Calendar ───────────────────────────────────────────────────────────────
@@ -636,7 +656,7 @@ function toggleDevice(device, el) {
 }
 
 function resetToDevicePicker() {
-  clearAllTimers(); destroyHlsPlayers(); showDevicePicker();
+  clearAllTimers(); destroyHlsPlayers(); stopFreshnessTracking(); showDevicePicker();
   document.getElementById('settings-btn').classList.add('hidden');
 }
 
@@ -649,6 +669,7 @@ async function startViewer() {
     await loadStream(i);
   }
   startCountdown();
+  startFreshnessTracking();
 }
 
 async function loadStream(idx) {
@@ -665,7 +686,7 @@ async function loadStream(idx) {
       body: JSON.stringify({ deviceId: selectedDevices[idx].id, slotId: String(idx) }),
     }).then(r => r.json());
     if (res.error) throw new Error(res.error);
-    streamData[idx] = res;
+    streamData[idx] = { ...res, hlsUrl: res.hlsUrl };
     statusEl.textContent = 'Buffering video...';
     meta.textContent = 'buffering...';
     attachHls(idx, res.hlsUrl);
@@ -705,6 +726,62 @@ function attachHls(idx, hlsUrl) {
 
 function destroyHlsPlayers() {
   hlsPlayers.forEach((p, i) => { if (p) { p.destroy(); hlsPlayers[i] = null; } });
+}
+
+// ── Freshness tracker ─────────────────────────────────────────────────────
+// Polls the HLS playlist every 3s and tracks when the last new segment arrived
+const lastSegmentTime = [null, null]; // timestamp of last new segment per slot
+const lastSeenSegment = ['', ''];     // last segment filename seen per slot
+let freshnessInterval = null;
+
+function startFreshnessTracking() {
+  if (freshnessInterval) clearInterval(freshnessInterval);
+  lastSegmentTime[0] = Date.now();
+  lastSegmentTime[1] = Date.now();
+
+  freshnessInterval = setInterval(async () => {
+    for (let i = 0; i < 2; i++) {
+      if (!streamData[i]?.hlsUrl) continue;
+      try {
+        const res = await fetch(streamData[i].hlsUrl + '?t=' + Date.now());
+        const text = await res.text();
+        // Extract last .ts segment filename from m3u8
+        const segments = text.match(/seg\d+\.ts/g);
+        const lastSeg = segments ? segments[segments.length - 1] : null;
+        if (lastSeg && lastSeg !== lastSeenSegment[i]) {
+          lastSeenSegment[i] = lastSeg;
+          lastSegmentTime[i] = Date.now();
+        }
+      } catch(e) { /* ignore fetch errors */ }
+
+      // Update freshness display
+      const el = document.getElementById(`cam-${i}-fresh`);
+      if (!el || lastSegmentTime[i] === null) continue;
+      const age = Math.round((Date.now() - lastSegmentTime[i]) / 1000);
+      el.classList.remove('stale', 'frozen');
+      if (age <= 6) {
+        el.textContent = '● live';
+        // no extra class — stays green
+      } else if (age <= 15) {
+        el.textContent = `↻ ${age}s ago`;
+        el.classList.add('stale');
+      } else {
+        el.textContent = `⚠ frozen ${age}s`;
+        el.classList.add('frozen');
+      }
+    }
+  }, 3000);
+}
+
+function stopFreshnessTracking() {
+  if (freshnessInterval) clearInterval(freshnessInterval);
+  freshnessInterval = null;
+  lastSegmentTime[0] = null;
+  lastSegmentTime[1] = null;
+  lastSeenSegment[0] = '';
+  lastSeenSegment[1] = '';
+  document.getElementById('cam-0-fresh').textContent = '';
+  document.getElementById('cam-1-fresh').textContent = '';
 }
 
 function startCountdown() {
