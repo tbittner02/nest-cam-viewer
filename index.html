@@ -760,8 +760,12 @@ function startFreshnessTracking() {
       const age = Math.round((Date.now() - lastSegmentTime[i]) / 1000);
       el.classList.remove('stale', 'frozen');
       if (age <= 6) {
-        el.textContent = '● live';
-        // no extra class — stays green
+        const t = new Date(lastSegmentTime[i]);
+        let h = t.getHours(), ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        const m = String(t.getMinutes()).padStart(2,'0');
+        const s = String(t.getSeconds()).padStart(2,'0');
+        el.textContent = `● live · ${h}:${m}:${s} ${ampm}`;
       } else if (age <= 15) {
         el.textContent = `↻ ${age}s ago`;
         el.classList.add('stale');
