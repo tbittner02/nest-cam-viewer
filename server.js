@@ -1,6 +1,6 @@
 /**
- * Nest Cam Viewer - Cloud Server (Railway-ready)
- * Config comes from environment variables — no local files needed.
+ * Nest Cam Viewer - Cloud Server with HLS relay
+ * RTSP → ffmpeg → HLS segments → browser video via hls.js
  */
 
 const http = require('http');
@@ -8,28 +8,22 @@ const https = require('https');
 const url = require('url');
 const fs = require('fs');
 const path = require('path');
+const { spawn } = require('child_process');
+const os = require('os');
 
-// ─── CONFIG via environment variables ─────────────────────────────────────
-// Set these in Railway's "Variables" tab (see SETUP.md)
 const CONFIG = {
   clientId:     process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
   projectId:    process.env.SDM_PROJECT_ID,
-  redirectUri:  process.env.REDIRECT_URI,   // e.g. https://your-app.railway.app/oauth/callback
+  redirectUri:  process.env.REDIRECT_URI,
 };
 
-// ─── In-memory token store (persists until server restarts) ───────────────
-// For permanent storage, set REFRESH_TOKEN env var after first login
+// ── Token store ────────────────────────────────────────────────────────────
 let tokens = null;
 
 function initTokens() {
-  // If a refresh token was saved as an env var, bootstrap from it
   if (process.env.REFRESH_TOKEN) {
-    tokens = {
-      access_token: null,
-      refresh_token: process.env.REFRESH_TOKEN,
-      expiry: 0, // force refresh on first use
-    };
+    tokens = { access_token: null, refresh_token: process.env.REFRESH_TOKEN, expiry: 0 };
     console.log('✅ Loaded refresh token from environment');
   }
 }
@@ -37,13 +31,67 @@ initTokens();
 
 function saveTokens(t) {
   tokens = t;
-  // Print the refresh token to logs so you can save it as an env var
-  // (only needed once — after that it persists across restarts)
   if (t.refresh_token) {
     console.log('\n📋 SAVE THIS as REFRESH_TOKEN env var in Railway:');
     console.log(t.refresh_token);
     console.log('');
   }
+}
+
+// ── HLS stream manager ─────────────────────────────────────────────────────
+const hlsStreams = {};
+
+function getHlsDir(slotId) {
+  return path.join(os.tmpdir(), `hls_${slotId}`);
+}
+
+function startHls(slotId, rtspUrl) {
+  stopHls(slotId);
+
+  const dir = getHlsDir(slotId);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  try { fs.readdirSync(dir).forEach(f => fs.unlinkSync(path.join(dir, f))); } catch {}
+
+  console.log(`▶ Starting HLS relay for slot ${slotId}`);
+
+  const ffmpeg = spawn('ffmpeg', [
+    '-rtsp_transport', 'tcp',
+    '-i', rtspUrl,
+    '-c:v', 'copy',
+    '-an',
+    '-f', 'hls',
+    '-hls_time', '2',
+    '-hls_list_size', '5',
+    '-hls_flags', 'delete_segments+append_list',
+    '-hls_segment_filename', path.join(dir, 'seg%03d.ts'),
+    path.join(dir, 'index.m3u8'),
+  ], { stdio: ['ignore', 'pipe', 'pipe'] });
+
+  ffmpeg.stderr.on('data', d => {
+    const msg = d.toString();
+    if (msg.includes('Error') || msg.includes('error') || msg.includes('Failed')) {
+      console.error(`ffmpeg [${slotId}]:`, msg.trim());
+    }
+  });
+
+  ffmpeg.on('exit', (code) => {
+    console.log(`ffmpeg [${slotId}] exited with code ${code}`);
+    if (hlsStreams[slotId]?.process === ffmpeg) delete hlsStreams[slotId];
+  });
+
+  hlsStreams[slotId] = { process: ffmpeg, dir, rtspUrl, startedAt: Date.now() };
+}
+
+function stopHls(slotId) {
+  if (hlsStreams[slotId]) {
+    try { hlsStreams[slotId].process.kill('SIGKILL'); } catch {}
+    delete hlsStreams[slotId];
+    console.log(`⏹ Stopped HLS relay for slot ${slotId}`);
+  }
+}
+
+function stopAllHls() {
+  Object.keys(hlsStreams).forEach(stopHls);
 }
 
 // ── HTTPS helper ───────────────────────────────────────────────────────────
@@ -63,7 +111,6 @@ function httpsRequest(options, body) {
   });
 }
 
-// ── Refresh access token ───────────────────────────────────────────────────
 async function refreshAccessToken() {
   const body = new URLSearchParams({
     client_id: CONFIG.clientId,
@@ -80,25 +127,19 @@ async function refreshAccessToken() {
   }, body);
 
   if (res.body.access_token) {
-    tokens = {
-      ...tokens,
-      access_token: res.body.access_token,
-      expiry: Date.now() + (res.body.expires_in * 1000),
-    };
+    tokens = { ...tokens, access_token: res.body.access_token, expiry: Date.now() + (res.body.expires_in * 1000) };
   } else {
     throw new Error('Token refresh failed: ' + JSON.stringify(res.body));
   }
 }
 
 async function getValidToken() {
-  if (!tokens) throw new Error('Not authenticated — visit /auth first');
-  if (!tokens.access_token || Date.now() > (tokens.expiry - 60000)) {
-    await refreshAccessToken();
-  }
+  if (!tokens) throw new Error('Not authenticated');
+  if (!tokens.access_token || Date.now() > (tokens.expiry - 60000)) await refreshAccessToken();
   return tokens.access_token;
 }
 
-// ── SDM helpers ────────────────────────────────────────────────────────────
+// ── SDM API ────────────────────────────────────────────────────────────────
 async function listDevices() {
   const token = await getValidToken();
   const res = await httpsRequest({
@@ -149,6 +190,31 @@ const server = http.createServer(async (req, res) => {
     const html = fs.readFileSync(path.join(__dirname, 'index.html'));
     res.writeHead(200, { 'Content-Type': 'text/html' });
     return res.end(html);
+  }
+
+  // Serve HLS segments: /hls/0/index.m3u8  or  /hls/1/seg001.ts
+  if (p.startsWith('/hls/')) {
+    const parts = p.split('/');
+    const slotId = parts[2];
+    const filename = parts[3];
+    const filepath = path.join(getHlsDir(slotId), filename);
+
+    let waited = 0;
+    while (!fs.existsSync(filepath) && waited < 8000) {
+      await new Promise(r => setTimeout(r, 200));
+      waited += 200;
+    }
+
+    if (!fs.existsSync(filepath)) {
+      res.writeHead(404); return res.end('Not ready');
+    }
+
+    const ext = path.extname(filename);
+    res.writeHead(200, {
+      'Content-Type': ext === '.m3u8' ? 'application/vnd.apple.mpegurl' : 'video/mp2t',
+      'Cache-Control': 'no-cache, no-store',
+    });
+    return res.end(fs.readFileSync(filepath));
   }
 
   if (p === '/auth') {
@@ -219,15 +285,24 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // Start HLS stream for a camera slot
   if (p === '/api/stream' && req.method === 'POST') {
     let body = '';
     req.on('data', d => body += d);
     req.on('end', async () => {
       try {
-        const { deviceId } = JSON.parse(body);
+        const { deviceId, slotId } = JSON.parse(body);
         const stream = await generateStream(deviceId);
+        if (!stream?.streamUrls?.rtspUrl) throw new Error('No RTSP URL returned');
+
+        startHls(slotId, stream.streamUrls.rtspUrl);
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(stream));
+        res.end(JSON.stringify({
+          hlsUrl: `/hls/${slotId}/index.m3u8`,
+          streamExtensionToken: stream.streamExtensionToken,
+          expiresAt: stream.expiresAt,
+        }));
       } catch (e) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: e.message }));
@@ -253,15 +328,32 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (p === '/api/stop' && req.method === 'POST') {
+    let body = '';
+    req.on('data', d => body += d);
+    req.on('end', () => {
+      try {
+        const { slotId } = JSON.parse(body);
+        stopHls(slotId);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ stopped: true }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
   res.writeHead(404);
   res.end('Not found');
 });
 
 server.listen(PORT, () => {
-  console.log(`\n🎥 Nest Viewer running on port ${PORT}`);
-  if (!tokens) {
-    console.log(`👉 Visit your app URL + /auth to connect Google\n`);
-  } else {
-    console.log(`✅ Refresh token loaded — ready to go\n`);
-  }
+  console.log(`\n🎥 Nest Viewer (HLS) running on port ${PORT}`);
+  if (!tokens) console.log(`👉 Visit your app URL + /auth to connect Google\n`);
+  else console.log(`✅ Ready\n`);
 });
+
+process.on('SIGTERM', stopAllHls);
+process.on('SIGINT', stopAllHls);

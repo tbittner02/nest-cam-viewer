@@ -5,142 +5,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nest Cam Viewer</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Archivo+Black&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <style>
   :root {
-    --bg: #111112;
-    --surface: #1a1a1c;
-    --border: #2c2c2e;
-    --accent: #34d399;
-    --accent-dim: #1a3d2e;
-    --red: #f87171;
-    --text: #f0f0f0;
-    --muted: #666;
-    --live: #ef4444;
+    --bg: #111112; --surface: #1a1a1c; --border: #2c2c2e;
+    --accent: #34d399; --accent-dim: #1a3d2e; --red: #f87171;
+    --text: #f0f0f0; --muted: #666; --live: #ef4444;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'DM Mono', monospace;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* ── Header ── */
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.9rem 1.5rem;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .logo {
-    font-family: 'Archivo Black', sans-serif;
-    font-size: 1.1rem;
-    letter-spacing: -0.02em;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-  }
-  .logo-dot {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    background: var(--live);
-    box-shadow: 0 0 8px var(--live);
-    animation: pulse 2s infinite;
-  }
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    font-size: 0.72rem;
-    color: var(--muted);
-  }
-  #status-badge {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.3rem 0.7rem;
-    border-radius: 999px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    font-size: 0.7rem;
-    transition: all 0.3s;
-  }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 1.5rem; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .logo { font-family: 'Archivo Black', sans-serif; font-size: 1.1rem; letter-spacing: -0.02em; display: flex; align-items: center; gap: 0.6rem; }
+  .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--live); box-shadow: 0 0 8px var(--live); animation: pulse 2s infinite; }
+  .header-right { display: flex; align-items: center; gap: 1rem; font-size: 0.72rem; color: var(--muted); }
+  #status-badge { display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 0.7rem; transition: all 0.3s; }
   #status-badge.ok { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
   #status-badge.err { border-color: var(--red); color: var(--red); }
   .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-
-  /* ── Auth screen ── */
-  #auth-screen {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 1.5rem;
-    padding: 2rem;
-    text-align: center;
-  }
-  #auth-screen h2 {
-    font-family: 'Archivo Black', sans-serif;
-    font-size: 1.8rem;
-  }
+  #auth-screen { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 1.5rem; padding: 2rem; text-align: center; }
+  #auth-screen h2 { font-family: 'Archivo Black', sans-serif; font-size: 1.8rem; }
   #auth-screen p { color: var(--muted); font-size: 0.8rem; max-width: 380px; line-height: 1.7; }
-  .btn {
-    background: var(--accent);
-    color: #000;
-    border: none;
-    padding: 0.75rem 1.75rem;
-    font-family: 'DM Mono', monospace;
-    font-weight: 500;
-    font-size: 0.85rem;
-    cursor: pointer;
-    border-radius: 2px;
-    transition: opacity 0.2s, transform 0.1s;
-    text-decoration: none;
-    display: inline-block;
-  }
+  .btn { background: var(--accent); color: #000; border: none; padding: 0.75rem 1.75rem; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 0.85rem; cursor: pointer; border-radius: 2px; transition: opacity 0.2s, transform 0.1s; text-decoration: none; display: inline-block; }
   .btn:hover { opacity: 0.85; }
-  .btn:active { transform: scale(0.98); }
-  .btn-ghost {
-    background: transparent;
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
+  .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
   .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
-
-  /* ── Device picker ── */
-  #device-screen {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 1.5rem;
-    padding: 2rem;
-  }
-  #device-screen h2 {
-    font-family: 'Archivo Black', sans-serif;
-    font-size: 1.4rem;
-  }
+  #device-screen { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 1.5rem; padding: 2rem; }
+  #device-screen h2 { font-family: 'Archivo Black', sans-serif; font-size: 1.4rem; }
   .device-list { display: flex; flex-direction: column; gap: 0.5rem; width: 100%; max-width: 460px; }
-  .device-item {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 0.9rem 1.1rem;
-    cursor: pointer;
-    border-radius: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    transition: border-color 0.2s;
-    font-size: 0.82rem;
-  }
+  .device-item { background: var(--surface); border: 1px solid var(--border); padding: 0.9rem 1.1rem; cursor: pointer; border-radius: 2px; display: flex; align-items: center; justify-content: space-between; transition: border-color 0.2s; font-size: 0.82rem; }
   .device-item:hover { border-color: var(--accent); }
   .device-item.selected { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
   .device-name { font-weight: 500; }
@@ -148,158 +40,43 @@
   .checkmark { color: var(--accent); font-size: 1rem; opacity: 0; transition: opacity 0.2s; }
   .device-item.selected .checkmark { opacity: 1; }
   .device-hint { font-size: 0.72rem; color: var(--muted); }
-
-  /* ── Main viewer ── */
-  #viewer-screen {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    padding: 1rem 1.5rem 1.5rem;
-    gap: 1rem;
-  }
-
-  .cams-grid {
-    flex: 1;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    min-height: 0;
-  }
-
-  @media (max-width: 640px) {
-    .cams-grid { grid-template-columns: 1fr; }
-  }
-
-  .cam-cell {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 2px;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
-    position: relative;
-  }
-
-  .cam-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.6rem 0.9rem;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-    font-size: 0.72rem;
-  }
+  #viewer-screen { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 1rem 1.5rem 1.5rem; gap: 1rem; }
+  .cams-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; min-height: 0; }
+  @media (max-width: 640px) { .cams-grid { grid-template-columns: 1fr; } }
+  .cam-cell { background: var(--surface); border: 1px solid var(--border); border-radius: 2px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .cam-header { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--border); flex-shrink: 0; font-size: 0.72rem; }
   .cam-title { font-weight: 500; display: flex; align-items: center; gap: 0.5rem; }
-  .live-pill {
-    background: var(--live);
-    color: #fff;
-    font-size: 0.6rem;
-    padding: 0.15rem 0.45rem;
-    border-radius: 999px;
-    letter-spacing: 0.08em;
-    font-weight: 500;
-  }
+  .live-pill { background: var(--live); color: #fff; font-size: 0.6rem; padding: 0.15rem 0.45rem; border-radius: 999px; letter-spacing: 0.08em; font-weight: 500; }
   .cam-meta { color: var(--muted); font-size: 0.68rem; }
-
-  .cam-body {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    min-height: 0;
-    background: #0a0a0a;
-  }
-
-  .cam-body video {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
-  }
-
-  .cam-overlay {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 0.75rem;
-    background: #0a0a0a;
-    font-size: 0.78rem;
-    color: var(--muted);
-    text-align: center;
-    padding: 1rem;
-  }
-  .cam-overlay .spinner {
-    width: 24px; height: 24px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  .cam-overlay.hidden { display: none; }
-
-  .refresh-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 0.7rem;
-    color: var(--muted);
-    flex-shrink: 0;
-  }
-  .refresh-track {
-    flex: 1;
-    height: 2px;
-    background: var(--border);
-    border-radius: 999px;
-    overflow: hidden;
-    margin: 0 1rem;
-  }
-  .refresh-fill {
-    height: 100%;
-    background: var(--accent);
-    border-radius: 999px;
-    transition: width 1s linear;
-  }
-
-  /* ── Utilities ── */
+  .cam-body { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; min-height: 0; background: #000; }
+  .cam-body video { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .cam-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 0.75rem; background: rgba(0,0,0,0.85); font-size: 0.78rem; color: var(--muted); text-align: center; padding: 1rem; transition: opacity 0.5s; }
+  .cam-overlay.hidden { opacity: 0; pointer-events: none; }
+  .cam-overlay .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  .refresh-bar { display: flex; align-items: center; justify-content: space-between; font-size: 0.7rem; color: var(--muted); flex-shrink: 0; }
+  .refresh-track { flex: 1; height: 2px; background: var(--border); border-radius: 999px; overflow: hidden; margin: 0 1rem; }
+  .refresh-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width 1s linear; }
   .hidden { display: none !important; }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--live); }
-    50% { opacity: 0.4; box-shadow: none; }
-  }
+  @keyframes pulse { 0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--live); } 50% { opacity: 0.4; box-shadow: none; } }
   @keyframes spin { to { transform: rotate(360deg); } }
-  @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">
-    <div class="logo-dot"></div>
-    NestView
-  </div>
+  <div class="logo"><div class="logo-dot"></div>NestView</div>
   <div class="header-right">
-    <div id="status-badge">
-      <div class="status-dot"></div>
-      <span id="status-text">checking...</span>
-    </div>
+    <div id="status-badge"><div class="status-dot"></div><span id="status-text">checking...</span></div>
     <button class="btn btn-ghost" id="settings-btn" style="font-size:0.7rem;padding:0.3rem 0.8rem;display:none" onclick="resetToDevicePicker()">⚙ cameras</button>
   </div>
 </header>
 
-<!-- Auth screen -->
 <div id="auth-screen">
   <h2>Connect Google Home</h2>
-  <p>Sign in with the Google account that owns your Nest cameras. You'll be redirected back here automatically.</p>
+  <p>Sign in with the Google account that owns your Nest cameras.</p>
   <a href="/auth" class="btn">Connect with Google →</a>
 </div>
 
-<!-- Device picker -->
 <div id="device-screen" class="hidden">
   <h2>Select Two Cameras</h2>
   <p class="device-hint">Click to select — choose exactly 2</p>
@@ -307,106 +84,78 @@
   <button class="btn hidden" id="start-btn" onclick="startViewer()">Start Viewing →</button>
 </div>
 
-<!-- Viewer -->
 <div id="viewer-screen" class="hidden">
   <div class="cams-grid">
-    <div class="cam-cell" id="cam-0">
+    <div class="cam-cell">
       <div class="cam-header">
         <div class="cam-title"><span class="live-pill">LIVE</span> <span id="cam-0-title">Camera 1</span></div>
         <div class="cam-meta" id="cam-0-meta">connecting...</div>
       </div>
       <div class="cam-body">
-        <div class="cam-overlay" id="cam-0-overlay">
-          <div class="spinner"></div>
-          <span>Fetching stream...</span>
-        </div>
+        <div class="cam-overlay" id="cam-0-overlay"><div class="spinner"></div><span id="cam-0-status">Starting stream...</span></div>
         <video id="cam-0-video" autoplay muted playsinline></video>
       </div>
     </div>
-    <div class="cam-cell" id="cam-1">
+    <div class="cam-cell">
       <div class="cam-header">
         <div class="cam-title"><span class="live-pill">LIVE</span> <span id="cam-1-title">Camera 2</span></div>
         <div class="cam-meta" id="cam-1-meta">connecting...</div>
       </div>
       <div class="cam-body">
-        <div class="cam-overlay" id="cam-1-overlay">
-          <div class="spinner"></div>
-          <span>Fetching stream...</span>
-        </div>
+        <div class="cam-overlay" id="cam-1-overlay"><div class="spinner"></div><span id="cam-1-status">Starting stream...</span></div>
         <video id="cam-1-video" autoplay muted playsinline></video>
       </div>
     </div>
   </div>
-
   <div class="refresh-bar">
     <span>next refresh</span>
     <div class="refresh-track"><div class="refresh-fill" id="refresh-fill" style="width:100%"></div></div>
-    <span id="refresh-countdown">4:55</span>
+    <span id="refresh-countdown">4:50</span>
   </div>
 </div>
 
 <script>
-// Stream expiry is ~5 min for Nest — we refresh at 4:50
-const REFRESH_INTERVAL = 290; // seconds
+const REFRESH_INTERVAL = 290;
 let selectedDevices = [];
-let streamData = [null, null];     // { streamExtensionToken, rtspUrl, expiresAt }
-let refreshTimers = [];
+let streamData = [null, null];
+let hlsPlayers = [null, null];
 let countdownInterval = null;
 let secondsLeft = REFRESH_INTERVAL;
 
-// ── Init ──────────────────────────────────────────────────────────────────
 async function init() {
   const res = await fetch('/api/status').then(r => r.json());
   if (res.authenticated) {
-    setStatus('connected', 'connected');
-    const params = new URLSearchParams(location.search);
-    if (params.get('auth') === 'success') history.replaceState({}, '', '/');
+    setStatus('ok', 'connected');
+    if (new URLSearchParams(location.search).get('auth') === 'success') history.replaceState({}, '', '/');
     showDevicePicker();
   } else {
-    setStatus('error', 'not connected');
+    setStatus('err', 'not connected');
     show('auth-screen');
   }
 }
 
-// ── Status badge ──────────────────────────────────────────────────────────
 function setStatus(type, text) {
-  const badge = document.getElementById('status-badge');
-  const label = document.getElementById('status-text');
-  badge.className = type === 'connected' ? 'ok' : type === 'error' ? 'err' : '';
-  label.textContent = text;
+  document.getElementById('status-badge').className = type;
+  document.getElementById('status-text').textContent = text;
 }
 
-// ── Screen management ─────────────────────────────────────────────────────
 function show(id) {
-  ['auth-screen','device-screen','viewer-screen'].forEach(s => {
-    document.getElementById(s).classList.toggle('hidden', s !== id);
-  });
+  ['auth-screen','device-screen','viewer-screen'].forEach(s =>
+    document.getElementById(s).classList.toggle('hidden', s !== id));
 }
 
-// ── Device picker ─────────────────────────────────────────────────────────
 async function showDevicePicker() {
   show('device-screen');
   selectedDevices = [];
   const list = document.getElementById('device-list');
   list.innerHTML = '<div style="color:var(--muted);font-size:0.78rem">Loading cameras...</div>';
-
   const res = await fetch('/api/devices').then(r => r.json());
-  if (!res.devices || res.devices.length === 0) {
-    list.innerHTML = '<div style="color:var(--red);font-size:0.78rem">No cameras found. Check your SDM project setup.</div>';
-    return;
-  }
-
+  if (!res.devices?.length) { list.innerHTML = '<div style="color:var(--red);font-size:0.78rem">No cameras found.</div>'; return; }
   list.innerHTML = '';
   res.devices.forEach(device => {
     const el = document.createElement('div');
     el.className = 'device-item';
-    el.innerHTML = `
-      <div>
-        <div class="device-name">${device.displayName || 'Unnamed camera'}</div>
-        <div class="device-type">${device.type.replace('sdm.devices.types.','')}</div>
-      </div>
-      <span class="checkmark">✓</span>
-    `;
+    el.innerHTML = `<div><div class="device-name">${device.displayName}</div><div class="device-type">${device.type.replace('sdm.devices.types.','')}</div></div><span class="checkmark">✓</span>`;
     el.addEventListener('click', () => toggleDevice(device, el));
     list.appendChild(el);
   });
@@ -414,120 +163,104 @@ async function showDevicePicker() {
 
 function toggleDevice(device, el) {
   const idx = selectedDevices.findIndex(d => d.id === device.id);
-  if (idx > -1) {
-    selectedDevices.splice(idx, 1);
-    el.classList.remove('selected');
-  } else if (selectedDevices.length < 2) {
-    selectedDevices.push(device);
-    el.classList.add('selected');
-  }
-  const btn = document.getElementById('start-btn');
-  btn.classList.toggle('hidden', selectedDevices.length !== 2);
+  if (idx > -1) { selectedDevices.splice(idx, 1); el.classList.remove('selected'); }
+  else if (selectedDevices.length < 2) { selectedDevices.push(device); el.classList.add('selected'); }
+  document.getElementById('start-btn').classList.toggle('hidden', selectedDevices.length !== 2);
 }
 
 function resetToDevicePicker() {
-  clearAllTimers();
-  showDevicePicker();
+  clearAllTimers(); destroyHlsPlayers(); showDevicePicker();
   document.getElementById('settings-btn').style.display = 'none';
 }
 
-// ── Viewer ────────────────────────────────────────────────────────────────
 async function startViewer() {
   show('viewer-screen');
   document.getElementById('settings-btn').style.display = '';
-  clearAllTimers();
-
+  clearAllTimers(); destroyHlsPlayers();
   for (let i = 0; i < 2; i++) {
-    document.getElementById(`cam-${i}-title`).textContent =
-      selectedDevices[i].displayName || `Camera ${i+1}`;
+    document.getElementById(`cam-${i}-title`).textContent = selectedDevices[i].displayName || `Camera ${i+1}`;
     await loadStream(i);
   }
-
-  startRefreshCountdown();
+  startCountdown();
 }
 
 async function loadStream(idx) {
   const overlay = document.getElementById(`cam-${idx}-overlay`);
+  const statusEl = document.getElementById(`cam-${idx}-status`);
   const meta = document.getElementById(`cam-${idx}-meta`);
   overlay.classList.remove('hidden');
-  overlay.innerHTML = '<div class="spinner"></div><span>Fetching stream...</span>';
+  statusEl.textContent = 'Requesting stream...';
   meta.textContent = 'connecting...';
-
   try {
     const res = await fetch('/api/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ deviceId: selectedDevices[idx].id }),
+      body: JSON.stringify({ deviceId: selectedDevices[idx].id, slotId: String(idx) }),
     }).then(r => r.json());
-
-    if (res.streamUrls?.rtspUrl) {
-      streamData[idx] = res;
-      meta.textContent = 'stream active';
-      // RTSP can't play natively in browser — show the URL for use with VLC/ffmpeg
-      overlay.innerHTML = `
-        <div style="font-size:0.75rem;color:var(--accent);margin-bottom:0.5rem">Stream URL ready</div>
-        <div style="font-size:0.65rem;color:var(--muted);word-break:break-all;padding:0 1rem;line-height:1.6">${res.streamUrls.rtspUrl}</div>
-        <div style="font-size:0.65rem;color:var(--muted);margin-top:0.75rem">Open in VLC or use ffmpeg to relay to browser</div>
-      `;
-    } else {
-      throw new Error(res.error || 'No stream URL returned');
-    }
+    if (res.error) throw new Error(res.error);
+    streamData[idx] = res;
+    statusEl.textContent = 'Buffering video...';
+    meta.textContent = 'buffering...';
+    attachHls(idx, res.hlsUrl);
   } catch (e) {
-    meta.textContent = 'error';
     overlay.innerHTML = `<div style="color:var(--red);font-size:0.75rem">Error: ${e.message}</div>`;
+    meta.textContent = 'error';
   }
 }
 
-async function extendStreams() {
-  for (let i = 0; i < 2; i++) {
-    if (!streamData[i]) continue;
-    try {
-      const res = await fetch('/api/extend', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          deviceId: selectedDevices[i].id,
-          streamExtensionToken: streamData[i].streamExtensionToken,
-        }),
-      }).then(r => r.json());
-      if (res.streamExtensionToken) {
-        streamData[i].streamExtensionToken = res.streamExtensionToken;
-      }
-    } catch (e) {
-      console.warn('Failed to extend stream', i, e);
-    }
+function attachHls(idx, hlsUrl) {
+  const video = document.getElementById(`cam-${idx}-video`);
+  const overlay = document.getElementById(`cam-${idx}-overlay`);
+  const meta = document.getElementById(`cam-${idx}-meta`);
+  if (hlsPlayers[idx]) { hlsPlayers[idx].destroy(); hlsPlayers[idx] = null; }
+
+  if (Hls.isSupported()) {
+    const hls = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 5 });
+    hls.loadSource(hlsUrl);
+    hls.attachMedia(video);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+    hls.on(Hls.Events.FRAG_BUFFERED, () => { overlay.classList.add('hidden'); meta.textContent = 'live'; });
+    hls.on(Hls.Events.ERROR, (e, data) => {
+      if (data.fatal) { meta.textContent = 'reconnecting...'; setTimeout(() => attachHls(idx, hlsUrl), 3000); }
+    });
+    hlsPlayers[idx] = hls;
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = hlsUrl;
+    video.addEventListener('loadedmetadata', () => { video.play().catch(() => {}); overlay.classList.add('hidden'); meta.textContent = 'live'; });
+  } else {
+    overlay.innerHTML = '<div style="color:var(--red);font-size:0.75rem">HLS not supported in this browser</div>';
   }
 }
 
-// ── Countdown + auto-refresh ──────────────────────────────────────────────
-function startRefreshCountdown() {
+function destroyHlsPlayers() {
+  hlsPlayers.forEach((p, i) => { if (p) { p.destroy(); hlsPlayers[i] = null; } });
+}
+
+function startCountdown() {
   secondsLeft = REFRESH_INTERVAL;
-  clearAllTimers();
-
+  if (countdownInterval) clearInterval(countdownInterval);
   countdownInterval = setInterval(async () => {
     secondsLeft--;
     const fill = document.getElementById('refresh-fill');
     const label = document.getElementById('refresh-countdown');
-    const pct = (secondsLeft / REFRESH_INTERVAL) * 100;
-    if (fill) fill.style.width = pct + '%';
-    const m = Math.floor(secondsLeft / 60);
-    const s = String(secondsLeft % 60).padStart(2, '0');
-    if (label) label.textContent = `${m}:${s}`;
-
+    if (fill) fill.style.width = (secondsLeft / REFRESH_INTERVAL * 100) + '%';
+    if (label) { const m = Math.floor(secondsLeft/60); label.textContent = `${m}:${String(secondsLeft%60).padStart(2,'0')}`; }
     if (secondsLeft <= 0) {
-      setStatus('connected', 'refreshing...');
-      await extendStreams();
-      setStatus('connected', 'connected');
+      setStatus('ok', 'refreshing...');
+      for (let i = 0; i < 2; i++) {
+        if (!streamData[i]?.streamExtensionToken) continue;
+        try {
+          const r = await fetch('/api/extend', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ deviceId: selectedDevices[i].id, streamExtensionToken: streamData[i].streamExtensionToken }) }).then(r => r.json());
+          if (r.streamExtensionToken) streamData[i].streamExtensionToken = r.streamExtensionToken;
+        } catch(e) { console.warn('extend failed', i, e); }
+      }
+      setStatus('ok', 'connected');
       secondsLeft = REFRESH_INTERVAL;
     }
   }, 1000);
 }
 
-function clearAllTimers() {
-  if (countdownInterval) clearInterval(countdownInterval);
-  refreshTimers.forEach(t => clearTimeout(t));
-  refreshTimers = [];
-}
+function clearAllTimers() { if (countdownInterval) clearInterval(countdownInterval); countdownInterval = null; }
 
 init();
 </script>
