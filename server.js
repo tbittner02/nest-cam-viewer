@@ -40,6 +40,7 @@ function saveTokens(t) {
 
 // ── HLS stream manager ─────────────────────────────────────────────────────
 const hlsStreams = {};
+const STALE_THRESHOLD_MS = 12000; // restart ffmpeg if no new segment for 12s
 
 function getHlsDir(slotId) {
   return path.join(os.tmpdir(), `hls_${slotId}`);
@@ -57,18 +58,31 @@ function startHls(slotId, rtspUrl) {
   const ffmpeg = spawn('ffmpeg', [
     '-rtsp_transport', 'tcp',
     '-i', rtspUrl,
-    '-c:v', 'copy',
-    '-an',
+
+    // Force transcode so we control keyframe interval — fixes doorbell freezing.
+    // h264 at same quality, insert keyframe every 2s regardless of source.
+    '-c:v', 'libx264',
+    '-preset', 'ultrafast',   // minimal CPU overhead
+    '-tune', 'zerolatency',   // reduce buffering latency
+    '-crf', '23',             // quality (lower = better, 23 is fine for monitoring)
+    '-g', '4',                // keyframe every 4 frames (~2s at 2fps) — forces regular keyframes
+    '-sc_threshold', '0',     // disable scene-change keyframes (more consistent segments)
+    '-an',                    // no audio
+
     '-f', 'hls',
     '-hls_time', '2',
-    '-hls_list_size', '5',
-    '-hls_flags', 'delete_segments+append_list',
+    '-hls_list_size', '6',
+    '-hls_flags', 'delete_segments+append_list+independent_segments',
+    '-hls_segment_type', 'mpegts',
     '-hls_segment_filename', path.join(dir, 'seg%03d.ts'),
     path.join(dir, 'index.m3u8'),
   ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
   ffmpeg.stderr.on('data', d => {
-    console.log(`ffmpeg [${slotId}]:`, d.toString().trim());
+    const msg = d.toString();
+    if (msg.includes('Error') || msg.includes('error') || msg.includes('Failed')) {
+      console.error(`ffmpeg [${slotId}]:`, msg.trim());
+    }
   });
 
   ffmpeg.on('exit', (code) => {
@@ -76,11 +90,32 @@ function startHls(slotId, rtspUrl) {
     if (hlsStreams[slotId]?.process === ffmpeg) delete hlsStreams[slotId];
   });
 
-  hlsStreams[slotId] = { process: ffmpeg, dir, rtspUrl, startedAt: Date.now() };
+  // Watchdog: monitor segment file mtimes — if nothing new for STALE_THRESHOLD_MS, restart
+  const watchdog = setInterval(() => {
+    const stream = hlsStreams[slotId];
+    if (!stream || stream.process !== ffmpeg) { clearInterval(watchdog); return; }
+
+    try {
+      const files = fs.readdirSync(dir).filter(f => f.endsWith('.ts'));
+      if (files.length === 0) return; // still starting up
+      const newest = files
+        .map(f => fs.statSync(path.join(dir, f)).mtimeMs)
+        .sort((a, b) => b - a)[0];
+      const age = Date.now() - newest;
+      if (age > STALE_THRESHOLD_MS) {
+        console.log(`⚠ Watchdog: slot ${slotId} stale for ${Math.round(age/1000)}s — restarting ffmpeg`);
+        clearInterval(watchdog);
+        startHls(slotId, rtspUrl); // restart with same URL
+      }
+    } catch {}
+  }, 4000);
+
+  hlsStreams[slotId] = { process: ffmpeg, dir, rtspUrl, startedAt: Date.now(), watchdog };
 }
 
 function stopHls(slotId) {
   if (hlsStreams[slotId]) {
+    try { clearInterval(hlsStreams[slotId].watchdog); } catch {}
     try { hlsStreams[slotId].process.kill('SIGKILL'); } catch {}
     delete hlsStreams[slotId];
     console.log(`⏹ Stopped HLS relay for slot ${slotId}`);
