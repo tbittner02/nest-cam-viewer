@@ -68,10 +68,7 @@ function startHls(slotId, rtspUrl) {
   ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
   ffmpeg.stderr.on('data', d => {
-    const msg = d.toString();
-    if (msg.includes('Error') || msg.includes('error') || msg.includes('Failed')) {
-      console.error(`ffmpeg [${slotId}]:`, msg.trim());
-    }
+    console.log(`ffmpeg [${slotId}]:`, d.toString().trim());
   });
 
   ffmpeg.on('exit', (code) => {
